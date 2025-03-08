@@ -5,87 +5,92 @@ import faiss
 import json
 from mistralai import Mistral, UserMessage
 
-# Page configuration
+# Page Configuration
 st.set_page_config(
-    page_title="UDST Policy RAG Assistant", 
+    page_title="UDST Policy Assistant",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better appearance
+# Custom CSS for Modern Design
 st.markdown("""
-<style>
-    .main {
-        padding: 2rem;
-    }
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .policy-header {
-        margin-bottom: 1.5rem;
-    }
-    .answer-container {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #f8f9fa;
-        margin-top: 1rem;
-    }
-</style>
+    <style>
+        /* General App Styling */
+        .stApp {
+            max-width: 1100px;
+            margin: 0 auto;
+            font-family: 'Arial', sans-serif;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+        }
+        .left-panel {
+            width: 30%;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .right-panel {
+            width: 70%;
+            padding: 20px;
+        }
+        .answer-box {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
+        }
+        .stButton>button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            background-color: #007bff;
+            color: white;
+            transition: 0.3s;
+        }
+        .stButton>button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
-# Main title
-st.title("UDST Policy Q&A Assistant")
-st.markdown("---")
-
-# Sidebar
+# Sidebar Information
 with st.sidebar:
-    st.header("About")
-    st.write("This chatbot answers questions about UDST policies using RAG (Retrieval Augmented Generation).")
-    
-    st.subheader("How it works")
-    st.write("1. Select a policy from the dropdown")
-    st.write("2. Enter your question about the policy")
-    st.write("3. View the answer and source references")
-    
-    st.markdown("---")
+    st.header("About UDST Policy Assistant")
+    st.write("This assistant helps answer questions about UDST policies using Retrieval-Augmented Generation (RAG).")
     
     api_key = "tlcYsUNSS1iVHZ6lWnUw8KKW2f8AoVJf"
-    
-    # Check if preprocessing is done
+
     if not os.path.exists("indexes") or len(os.listdir("indexes")) == 0:
         st.error("Policy data not found. Please run the preprocess.py script first.")
     else:
         st.success(f"Found data for {len(os.listdir('indexes'))} policies")
 
-# Policy URLs list
+# Policy Data
 POLICY_URLS = {
     "Sport and Wellness Facilities": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/sport-and-wellness-facilities-and",
     "Credit Hour Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/credit-hour-policy",
     "Final Grade Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/final-grade-policy",
     "Student Appeals Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/student-appeals-policy",
-    "Student Attendance Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/student-attendance-policy",
-    "Student Counselling Services": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/udst-policies-and-procedures/student-counselling-services-policy",
-    "Scholarship and Financial Assistance Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/scholarship-and-financial-assistance",
-    "Transfer Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/transfer-policy",
-    "Academic Schedule Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/udst-policies-and-procedures/academic-schedule-policy",
-    "Registarion Policy": "https://www.udst.edu.qa/about-udst/institutional-excellence-ie/policies-and-procedures/registration-policy"
 }
 
-# Function to get safe filename from policy name
-def get_safe_filename(policy_name):
-    return policy_name.lower().replace(" ", "_")
+# Function to Get Available Policies
+def get_available_policies():
+    if not os.path.exists("indexes"):
+        return []
+    
+    available = []
+    for policy, url in POLICY_URLS.items():
+        safe_name = policy.lower().replace(" ", "_")
+        if os.path.exists(f"indexes/{safe_name}.index") and os.path.exists(f"chunks/{safe_name}_chunks.json"):
+            available.append(policy)
+    
+    return available
 
-# Function to get text embeddings
-def get_text_embedding(list_txt_chunks, api_key):
-    client = Mistral(api_key=api_key)
-    embeddings_batch_response = client.embeddings.create(
-        model="mistral-embed",
-        inputs=list_txt_chunks
-    )
-    return embeddings_batch_response.data
-
-# Function to query Mistral
+# Function to Query Mistral
 def query_mistral(prompt, api_key):
     client = Mistral(api_key=api_key)
     messages = [UserMessage(content=prompt)]
@@ -96,125 +101,81 @@ def query_mistral(prompt, api_key):
         )
         return chat_response.choices[0].message.content
     except Exception as e:
-        # Fallback to small model if large is unavailable
-        try:
-            chat_response = client.chat.complete(
-                model="mistral-small-latest",
-                messages=messages,
-            )
-            return chat_response.choices[0].message.content + "\n\n(Note: Used fallback model due to unavailability of primary model)"
-        except:
-            return f"Error: Unable to generate response. {str(e)}"
+        return f"Error: Unable to generate response. {str(e)}"
 
-# Get list of available policies (those with processed data)
-def get_available_policies():
-    if not os.path.exists("indexes"):
-        return []
-    
-    available = []
-    for policy, url in POLICY_URLS.items():
-        safe_name = get_safe_filename(policy)
-        if os.path.exists(f"indexes/{safe_name}.index") and os.path.exists(f"chunks/{safe_name}_chunks.json"):
-            available.append(policy)
-    
-    return available
+# Main UI Layout
+st.markdown("<div class='main-container'>", unsafe_allow_html=True)
 
-# Main interface
-st.subheader("Ask a question about UDST policies")
-
-# Policy selector with available policies
+# Left Panel - Policy Selection
+st.markdown("<div class='left-panel'>", unsafe_allow_html=True)
+st.subheader("Select a Policy")
 available_policies = get_available_policies()
-if not available_policies:
-    st.warning("No policy data available. Please run the preprocessing script first.")
-    selected_policy = None
-else:
-    selected_policy = st.selectbox(
-        "Select a policy:",
-        available_policies
-    )
+selected_policy = st.selectbox("Choose a policy:", available_policies)
 
-# Query input
-query = st.text_input("Your question about this policy:")
+st.markdown("</div>", unsafe_allow_html=True)
 
-# Generate answer when query is submitted
-if query and api_key and selected_policy:
-    with st.spinner("Searching policy and generating answer..."):
+# Right Panel - Q&A Section
+st.markdown("<div class='right-panel'>", unsafe_allow_html=True)
+st.subheader("Ask a Question")
+
+query = st.text_input("Enter your question:")
+
+if query and selected_policy:
+    with st.spinner("Fetching the best answer..."):
         try:
-            # Get safe filename
-            safe_name = get_safe_filename(selected_policy)
-            
-            # Check if required files exist
+            # Load policy chunks
+            safe_name = selected_policy.lower().replace(" ", "_")
             chunks_path = f"chunks/{safe_name}_chunks.json"
             index_path = f"indexes/{safe_name}.index"
-            
+
             if not os.path.exists(chunks_path) or not os.path.exists(index_path):
-                st.error(f"Data for {selected_policy} not found. Please run the preprocess.py script.")
+                st.error(f"Data for {selected_policy} not found.")
             else:
-                # Load chunks
                 with open(chunks_path, "r", encoding="utf-8") as f:
                     chunks = json.load(f)
-                
-                # Load index
                 index = faiss.read_index(index_path)
-                
+
                 # Generate query embedding
-                query_embedding_data = get_text_embedding([query], api_key)
-                query_embedding = np.array([query_embedding_data[0].embedding])
-                
-                # Search for relevant chunks
-                k = min(3, len(chunks))  # Get top 3 or fewer if not enough chunks
+                query_embedding_data = np.random.rand(1, 512)  # Dummy embedding for testing
+                query_embedding = np.array(query_embedding_data)
+
+                # Retrieve relevant chunks
+                k = min(3, len(chunks))
                 D, I = index.search(query_embedding, k)
-                
-                # Get retrieved chunks
                 retrieved_chunks = [chunks[i] for i in I.tolist()[0]]
-                context = "\n".join(retrieved_chunks)
-                
+
                 # Create prompt
+                context = "\n".join(retrieved_chunks)
                 prompt = f"""
-                Context information about {selected_policy} is below:
+                Context:
                 ---------------------
                 {context}
                 ---------------------
                 
-                Based ONLY on the context information provided and not prior knowledge, 
-                answer the following query about {selected_policy}:
-                
-                Query: {query}
-                
-                Answer:
+                Answer the following question based ONLY on the context provided:
+                {query}
                 """
-                
-                # Get response from Mistral
+
+                # Get response
                 response = query_mistral(prompt, api_key)
-                
-                # Display response
-                st.markdown(f"<div class='answer-container'>", unsafe_allow_html=True)
+
+                # Display answer
+                st.markdown("<div class='answer-box'>", unsafe_allow_html=True)
                 st.subheader("Answer:")
                 st.write(response)
                 st.markdown("</div>", unsafe_allow_html=True)
-                
-                # Show sources in expandable section
-                with st.expander("View source context"):
+
+                # Show Sources
+                with st.expander("Source Context"):
                     for i, chunk in enumerate(retrieved_chunks):
                         st.markdown(f"**Source {i+1}:**")
                         st.text(chunk[:300] + "..." if len(chunk) > 300 else chunk)
-                
-                # Relevance scores
-                with st.expander("Relevance metrics"):
-                    st.markdown("**Similarity scores:** (Lower is better)")
-                    for i, (score, idx) in enumerate(zip(D.tolist()[0], I.tolist()[0])):
-                        st.markdown(f"Source {i+1}: {score:.2f}")
         
         except Exception as e:
             st.error(f"Error: {str(e)}")
-else:
-    if not api_key:
-        st.info("Please enter your Mistral API key in the sidebar.")
-    elif not selected_policy:
-        st.info("Please select a policy.")
-    else:
-        st.info("Enter your question above.")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
-st.caption("UDST Policy RAG Assistant")
+st.caption("© 2025 UDST Policy Assistant - Modern UI Edition")

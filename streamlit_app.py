@@ -6,52 +6,37 @@ import json
 from mistralai import Mistral, UserMessage
 
 # Page configuration
-st.set_page_config(page_title="UDST Policy RAG Assistant", layout="wide",initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="UDST Policy RAG Assistant", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Custom Modern CSS
+# Custom CSS for better appearance
 st.markdown("""
-    <style>
-        body { background-color: #f4f4f4; }
-        .stApp { max-width: 1200px; margin: auto; }
-        .header-container { text-align: center; padding: 20px; }
-        .question-container { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-        .answer-container { background: #e3f2fd; padding: 20px; border-radius: 10px; margin-top: 15px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-    </style>
+<style>
+    .main {
+        padding: 2rem;
+    }
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .policy-header {
+        margin-bottom: 1.5rem;
+    }
+    .answer-container {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: #f8f9fa;
+        margin-top: 1rem;
+    }
+</style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown("<div class='header-container'><h1 style='color:#293241;'>UDST Policy Q&A Assistant</h1></div>", unsafe_allow_html=True)
+# Main title
+st.title("UDST Policy Q&A Assistant")
 st.markdown("---")
-
-# Layout with Two Columns
-col1, col2 = st.columns([1, 2])
-
-# Sidebar Content in the Left Column
-with col1:
-    st.subheader("Select a Policy")
-    POLICY_URLS = {
-        "Sport and Wellness Facilities": "https://www.udst.edu.qa/...",
-        "Credit Hour Policy": "https://www.udst.edu.qa/...",
-        "Final Grade Policy": "https://www.udst.edu.qa/..."
-    }
-    selected_policy = st.selectbox("Choose a policy:", list(POLICY_URLS.keys()))
-    st.markdown("[View Policy Details](" + POLICY_URLS[selected_policy] + ")")
-
-# Main Q&A Section in the Right Column
-with col2:
-    st.markdown("<div class='question-container'>", unsafe_allow_html=True)
-    st.subheader("Ask a Question")
-    query = st.text_input("Enter your question below:")
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    if query:
-        st.markdown("<div class='answer-container'>", unsafe_allow_html=True)
-        st.subheader("Answer:")
-        st.write("This is where the answer will be displayed based on policy retrieval.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown("---")
-st.caption("© 2025 UDST Policy Assistant")
 
 # Sidebar
 with st.sidebar:

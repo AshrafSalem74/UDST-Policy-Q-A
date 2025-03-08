@@ -50,7 +50,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    api_key = "LoXIODO6VkldB64uwva76l1zDpIz6cfu"
+    api_key = "tlcYsUNSS1iVHZ6lWnUw8KKW2f8AoVJf"
     
     # Check if preprocessing is done
     if not os.path.exists("indexes") or len(os.listdir("indexes")) == 0:

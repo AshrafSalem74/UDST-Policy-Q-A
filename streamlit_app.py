@@ -6,7 +6,7 @@ import json
 from mistralai import Mistral, UserMessage
 
 # Page configuration
-st.set_page_config(page_title="UDST Policy RAG Assistant", layout="wide")
+st.set_page_config(page_title="UDST Policy RAG Assistant", layout="wide",initial_sidebar_state="expanded")
 
 # Custom Modern CSS
 st.markdown("""

@@ -128,7 +128,7 @@ def create_dummy_policy_data(policy_name):
 
 def main():
     # Get API key
-    api_key = "LoXIODO6VkldB64uwva76l1zDpIz6cfu"
+    api_key = "gePkdhqadRhrrjnUEAxco39R896cV9B0"
     
     # Create directories
     os.makedirs("policy_texts", exist_ok=True)

@@ -1,3 +1,6 @@
 faiss-cpu
-mistralai
+mistralai==1.5.1
 beautifulsoup4
+numpy
+requests
+streamlit
